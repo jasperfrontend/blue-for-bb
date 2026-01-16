@@ -1,0 +1,103 @@
+/**
+ * Blue for Beaver Builder - Admin Styles
+ */
+
+/* Export Meta Box */
+#blue-export-status.success {
+    padding: 8px;
+    background: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+    border-radius: 4px;
+}
+
+#blue-export-status.error {
+    padding: 8px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+    border-radius: 4px;
+}
+
+/* Library Page */
+.blue-empty-state {
+    padding: 40px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 20px;
+}
+
+.blue-empty-state p {
+    font-size: 16px;
+    color: #666;
+    margin: 0;
+}
+
+/* Asset Type Badges */
+.blue-type-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.blue-type-template {
+    background: #d4edda;
+    color: #155724;
+}
+
+.blue-type-row {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.blue-type-column {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.blue-type-module {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* Tags */
+.blue-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    margin: 2px;
+    background: #f0f0f1;
+    border-radius: 3px;
+    font-size: 12px;
+    color: #2c3338;
+}
+
+/* Table Text Styles */
+.wp-list-table td small.description {
+    color: #666;
+}
+
+.wp-list-table td small.source {
+    color: #999;
+}
+
+.wp-list-table td .no-tags {
+    color: #999;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 782px) {
+    .blue-type-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    .blue-tag {
+        font-size: 11px;
+        padding: 1px 5px;
+    }
+}
