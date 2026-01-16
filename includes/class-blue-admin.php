@@ -30,13 +30,17 @@ class Blue_Admin {
      * Add settings page to WordPress admin
      */
     public function add_admin_menu() {
+        // Get library instance from plugin singleton
+        $plugin = Blue_Plugin::instance();
+        $library = $plugin->get_library();
+
         // Main library page
         add_menu_page(
             'Blue Library',
             'Blue Library',
             'edit_posts',
             'blue-library',
-            '__return_null', // Handled by Blue_Library class
+            [$library, 'render_library_page'],
             'dashicons-cloud',
             30
         );

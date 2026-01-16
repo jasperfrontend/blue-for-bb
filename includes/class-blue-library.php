@@ -21,34 +21,8 @@ class Blue_Library {
      * Initialize library hooks
      */
     public function init() {
-        add_action('admin_menu', [$this, 'register_library_page']);
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_blue_delete_asset', [$this, 'ajax_delete_asset']);
-    }
-
-    /**
-     * Register library page callback
-     */
-    public function register_library_page() {
-        // Update the callback for the blue-library page
-        global $submenu;
-        if (isset($submenu['blue-library'])) {
-            foreach ($submenu['blue-library'] as $key => $item) {
-                if ($item[2] === 'blue-library') {
-                    $submenu['blue-library'][$key][2] = 'blue-library';
-                }
-            }
-        }
-
-        add_submenu_page(
-            'blue-library',
-            'Library',
-            'Library',
-            'edit_posts',
-            'blue-library',
-            [$this, 'render_library_page'],
-            0 // Position at top
-        );
     }
 
     /**
@@ -175,7 +149,7 @@ class Blue_Library {
                 </div>
             <?php endif; ?>
 
-            <?php $this->render_filters($type_filter, $search); ?>
+            <?php $this->render_filters($assets, $type_filter, $search); ?>
 
             <?php if (empty($assets)): ?>
                 <div class="blue-empty-state">
@@ -197,7 +171,7 @@ class Blue_Library {
     /**
      * Render filter controls
      */
-    private function render_filters($type_filter, $search) {
+    private function render_filters($assets, $type_filter, $search) {
         ?>
         <div class="tablenav top">
             <div class="alignleft actions">
