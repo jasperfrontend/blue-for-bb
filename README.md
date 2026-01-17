@@ -1,4 +1,4 @@
-# Blue – Beaver Builder Cloud Sync
+# Blue 🔹 Beaver Builder Cloud Sync
 
 Blue is a lightweight cloud sync tool for Beaver Builder assets. It was built to avoid repeating the same setup work across multiple projects and to make it easy to reuse proven components between client websites.
 

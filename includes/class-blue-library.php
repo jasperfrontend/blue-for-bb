@@ -153,7 +153,7 @@ class Blue_Library {
             <?php if ($cache_info): ?>
                 <div class="blue-cache-status">
                     <span class="dashicons dashicons-cloud" style="color: #2ed573;"></span>
-                    Last synced: <strong id="blue-cache-time"><?php echo esc_html(date('M j, Y g:i a', $cache_info['cached_at'])); ?></strong>
+                    Last synced: <strong id="blue-cache-time"><?php echo esc_html(wp_date(get_option('date_format') . ' ' . get_option('time_format'), $cache_info['cached_at'])); ?></strong>
                     <span class="blue-cache-hint">(auto-refreshes hourly)</span>
                 </div>
             <?php endif; ?>
@@ -332,7 +332,7 @@ class Blue_Library {
         wp_send_json_success([
             'message' => 'Library synced successfully',
             'asset_count' => count($assets),
-            'cached_at' => $cache_info ? date('M j, Y g:i a', $cache_info['cached_at']) : null
+            'cached_at' => $cache_info ? wp_date(get_option('date_format') . ' ' . get_option('time_format'), $cache_info['cached_at']) : null
         ]);
     }
 

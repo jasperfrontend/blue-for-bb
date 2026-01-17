@@ -2,9 +2,13 @@
 /**
  * Plugin Name: Blue for Beaver Builder
  * Description: Cloud library for Beaver Builder layouts
- * Version: 0.1.2
+ * Version: 0.1.3
  * Author: Jasper
+ * Author URI: https://github.com/jasperfrontend
+ * Plugin URI: https://github.com/jasperfrontend/blue-for-bb
  * Requires PHP: 8.0
+ * Requires at least: 6.0
+ * Update URI: https://github.com/jasperfrontend/blue-for-bb
  */
 
 // Prevent direct access
@@ -27,6 +31,10 @@ function blue_for_bb_init() {
 
     // Initialize plugin
     Blue_Plugin::instance();
+
+    // Initialize GitHub updater (update with your GitHub username and repo name)
+    require_once BLUE_PLUGIN_DIR . 'includes/class-blue-updater.php';
+    new Blue_Updater('jasperfrontend', 'blue-for-bb');
 }
 add_action('plugins_loaded', 'blue_for_bb_init');
 
