@@ -32,4 +32,7 @@ Yes. The WordPress plugin source code is available on GitHub. The API component 
 
 The API is still evolving. Before open-sourcing it, I want to improve performance characteristics and complete a proper security review to ensure it’s safe to run in other environments.
 
+### Can I use this right now?
+No.
+
 ~ Jasper
