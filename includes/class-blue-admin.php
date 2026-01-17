@@ -55,14 +55,6 @@ class Blue_Admin {
             [$this, 'render_settings_page']
         );
 
-        // Also keep it under Settings for discoverability
-        add_options_page(
-            'Blue for BB Settings',
-            'Blue for BB',
-            'manage_options',
-            'blue-for-bb',
-            [$this, 'render_settings_page']
-        );
     }
 
     /**

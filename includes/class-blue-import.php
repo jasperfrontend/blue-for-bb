@@ -141,11 +141,76 @@ class Blue_Import {
         $layout_data = [];
 
         foreach ($data as $node_id => $node_data) {
-            // Convert each node to stdClass object
-            $layout_data[$node_id] = json_decode(wp_json_encode($node_data));
+            // Convert each node to stdClass object, but preserve arrays in settings
+            $layout_data[$node_id] = $this->convert_node_to_object($node_data);
         }
 
         return $layout_data;
+    }
+
+    /**
+     * Convert a node to stdClass while preserving array structures in settings
+     *
+     * Beaver Builder expects nodes to be stdClass objects, but certain nested
+     * settings (like typography fields) must remain as arrays because BB accesses
+     * them with array syntax: $module->settings->typography_field['font_family']
+     */
+    private function convert_node_to_object($node_data) {
+        if (!is_array($node_data)) {
+            return $node_data;
+        }
+
+        $node = new stdClass();
+
+        foreach ($node_data as $key => $value) {
+            if ($key === 'settings' && is_array($value)) {
+                // Settings need special handling - convert to object but preserve nested arrays
+                $node->$key = $this->convert_settings_to_object($value);
+            } elseif (is_array($value) && $this->is_associative_array($value)) {
+                // Recursively convert associative arrays to objects (for node structure)
+                $node->$key = $this->convert_node_to_object($value);
+            } else {
+                $node->$key = $value;
+            }
+        }
+
+        return $node;
+    }
+
+    /**
+     * Convert settings array to stdClass while preserving nested arrays
+     *
+     * Typography, shadow, border, and other complex field types in BB are stored
+     * as arrays and accessed with array syntax. We must preserve these.
+     */
+    private function convert_settings_to_object($settings) {
+        if (!is_array($settings)) {
+            return $settings;
+        }
+
+        $obj = new stdClass();
+
+        foreach ($settings as $key => $value) {
+            if (is_array($value)) {
+                // Keep arrays as arrays - BB accesses these with bracket notation
+                // This includes typography, shadows, borders, margins, padding, etc.
+                $obj->$key = $value;
+            } else {
+                $obj->$key = $value;
+            }
+        }
+
+        return $obj;
+    }
+
+    /**
+     * Check if an array is associative (has string keys)
+     */
+    private function is_associative_array($arr) {
+        if (!is_array($arr) || empty($arr)) {
+            return false;
+        }
+        return array_keys($arr) !== range(0, count($arr) - 1);
     }
 
     /**
