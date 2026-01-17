@@ -23,6 +23,7 @@ class Blue_Library {
     public function init() {
         add_action('admin_enqueue_scripts', [$this, 'enqueue_scripts']);
         add_action('wp_ajax_blue_delete_asset', [$this, 'ajax_delete_asset']);
+        add_action('wp_ajax_blue_refresh_assets', [$this, 'ajax_refresh_assets']);
     }
 
     /**
@@ -50,7 +51,8 @@ class Blue_Library {
 
         wp_localize_script('blue-library', 'blueLibrary', [
             'ajaxUrl' => admin_url('admin-ajax.php'),
-            'deleteNonce' => wp_create_nonce('blue_delete_asset')
+            'deleteNonce' => wp_create_nonce('blue_delete_asset'),
+            'refreshNonce' => wp_create_nonce('blue_refresh_assets')
         ]);
     }
 
@@ -137,11 +139,24 @@ class Blue_Library {
      * Render library HTML
      */
     private function render_library_html($assets, $error_message, $type_filter, $search) {
+        $cache_info = $this->api_client->get_cache_info();
         ?>
         <div class="wrap">
             <h1 class="wp-heading-inline">Blue Library</h1>
             <a href="<?php echo esc_url(admin_url('admin.php?page=blue-settings')); ?>" class="page-title-action">Settings</a>
+            <button type="button" id="blue-sync-btn" class="page-title-action">
+                <span class="dashicons dashicons-update" style="vertical-align: middle; margin-right: 3px;"></span>
+                Sync Now
+            </button>
             <hr class="wp-header-end">
+
+            <?php if ($cache_info): ?>
+                <div class="blue-cache-status">
+                    <span class="dashicons dashicons-cloud" style="color: #2ed573;"></span>
+                    Last synced: <strong id="blue-cache-time"><?php echo esc_html(date('M j, Y g:i a', $cache_info['cached_at'])); ?></strong>
+                    <span class="blue-cache-hint">(auto-refreshes hourly)</span>
+                </div>
+            <?php endif; ?>
 
             <?php if ($error_message): ?>
                 <div class="notice notice-error">
@@ -292,6 +307,33 @@ class Blue_Library {
             </td>
         </tr>
         <?php
+    }
+
+    /**
+     * AJAX handler for refreshing assets cache
+     */
+    public function ajax_refresh_assets() {
+        check_ajax_referer('blue_refresh_assets', 'nonce');
+
+        if (!current_user_can('edit_posts')) {
+            wp_send_json_error(['message' => 'Insufficient permissions']);
+            return;
+        }
+
+        $assets = $this->api_client->refresh_assets();
+
+        if (is_wp_error($assets)) {
+            wp_send_json_error(['message' => 'Sync failed: ' . $assets->get_error_message()]);
+            return;
+        }
+
+        $cache_info = $this->api_client->get_cache_info();
+
+        wp_send_json_success([
+            'message' => 'Library synced successfully',
+            'asset_count' => count($assets),
+            'cached_at' => $cache_info ? date('M j, Y g:i a', $cache_info['cached_at']) : null
+        ]);
     }
 
     /**

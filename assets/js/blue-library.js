@@ -5,6 +5,42 @@
     'use strict';
 
     $(document).ready(function() {
+        // Handle sync button click
+        $('#blue-sync-btn').on('click', function(e) {
+            e.preventDefault();
+
+            const btn = $(this);
+            if (btn.hasClass('syncing')) {
+                return;
+            }
+
+            btn.addClass('syncing');
+            const originalText = btn.html();
+            btn.html('<span class="dashicons dashicons-update" style="vertical-align: middle; margin-right: 3px;"></span> Syncing...');
+
+            $.post(blueLibrary.ajaxUrl, {
+                action: 'blue_refresh_assets',
+                nonce: blueLibrary.refreshNonce
+            })
+            .done(function(response) {
+                if (response.success) {
+                    // Update cache time display
+                    if (response.data.cached_at) {
+                        $('#blue-cache-time').text(response.data.cached_at);
+                    }
+                    // Reload page to show fresh data
+                    location.reload();
+                } else {
+                    alert('Sync failed: ' + (response.data.message || 'Unknown error'));
+                    btn.removeClass('syncing').html(originalText);
+                }
+            })
+            .fail(function(xhr, status, error) {
+                alert('Sync request failed: ' + error);
+                btn.removeClass('syncing').html(originalText);
+            });
+        });
+
         // Handle delete button clicks
         $('.blue-delete-asset').on('click', function(e) {
             e.preventDefault();

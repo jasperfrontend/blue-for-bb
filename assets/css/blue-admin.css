@@ -89,6 +89,42 @@
     color: #999;
 }
 
+/* Cache Status */
+.blue-cache-status {
+    margin: 15px 0;
+    padding: 10px 14px;
+    background: #f0f6fc;
+    border: 1px solid #c3d9ed;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #1e4b75;
+}
+
+.blue-cache-status .dashicons {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.blue-cache-hint {
+    color: #666;
+    margin-left: 6px;
+}
+
+/* Sync Button States */
+#blue-sync-btn.syncing {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+#blue-sync-btn.syncing .dashicons {
+    animation: blue-spin 1s linear infinite;
+}
+
+@keyframes blue-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* Responsive Adjustments */
 @media screen and (max-width: 782px) {
     .blue-type-badge {

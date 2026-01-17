@@ -15,6 +15,10 @@ class Blue_API_Client {
     private $api_url;
     private $timeout = 15;
 
+    // Cache settings
+    const CACHE_KEY = 'blue_assets_cache';
+    const CACHE_EXPIRY = HOUR_IN_SECONDS; // 1 hour
+
     public function __construct() {
         $this->api_url = BLUE_API_URL;
         $this->api_key = get_option('blue_api_key', '');
@@ -61,30 +65,103 @@ class Blue_API_Client {
 
     /**
      * Get all assets with optional filtering
+     * Uses transient cache to avoid repeated API calls
      */
-    public function get_assets($filters = []) {
-        $query_params = [];
-
-        if (!empty($filters['type'])) {
-            $query_params['type'] = Blue_Validator::sanitize_asset_type($filters['type']);
+    public function get_assets($filters = [], $force_refresh = false) {
+        // Try to get cached assets first (unless force refresh)
+        if (!$force_refresh) {
+            $cached = $this->get_cached_assets();
+            if ($cached !== false) {
+                // Apply filters to cached data
+                return $this->apply_filters($cached, $filters);
+            }
         }
 
-        $endpoint = '/assets';
-        if (!empty($query_params)) {
-            $endpoint .= '?' . http_build_query($query_params);
-        }
-
-        $response = $this->get($endpoint);
+        // Fetch fresh from API
+        $response = $this->get('/assets');
 
         if (is_wp_error($response)) {
+            // If API fails, try to return stale cache as fallback
+            $stale_cache = get_transient(self::CACHE_KEY);
+            if ($stale_cache !== false) {
+                return $this->apply_filters($stale_cache['assets'], $filters);
+            }
             return $response;
         }
 
         if ($response['status'] === 200 && isset($response['data']['assets'])) {
-            return $response['data']['assets'];
+            // Cache the fresh data
+            $this->set_cached_assets($response['data']['assets']);
+            return $this->apply_filters($response['data']['assets'], $filters);
         }
 
         return new WP_Error('api_error', 'Failed to fetch assets', ['status' => $response['status']]);
+    }
+
+    /**
+     * Apply filters to assets array
+     */
+    private function apply_filters($assets, $filters) {
+        if (empty($filters['type'])) {
+            return $assets;
+        }
+
+        $type = Blue_Validator::sanitize_asset_type($filters['type']);
+        return array_filter($assets, function($asset) use ($type) {
+            return isset($asset['type']) && $asset['type'] === $type;
+        });
+    }
+
+    /**
+     * Get cached assets
+     */
+    public function get_cached_assets() {
+        $cached = get_transient(self::CACHE_KEY);
+        if ($cached === false) {
+            return false;
+        }
+        return $cached['assets'];
+    }
+
+    /**
+     * Store assets in cache
+     */
+    private function set_cached_assets($assets) {
+        set_transient(self::CACHE_KEY, [
+            'assets' => $assets,
+            'cached_at' => time()
+        ], self::CACHE_EXPIRY);
+    }
+
+    /**
+     * Clear the assets cache
+     */
+    public function clear_cache() {
+        delete_transient(self::CACHE_KEY);
+    }
+
+    /**
+     * Get cache info (for display purposes)
+     */
+    public function get_cache_info() {
+        $cached = get_transient(self::CACHE_KEY);
+        if ($cached === false) {
+            return null;
+        }
+
+        return [
+            'cached_at' => $cached['cached_at'],
+            'asset_count' => count($cached['assets']),
+            'expires_in' => self::CACHE_EXPIRY - (time() - $cached['cached_at'])
+        ];
+    }
+
+    /**
+     * Force refresh assets from API
+     */
+    public function refresh_assets() {
+        $this->clear_cache();
+        return $this->get_assets([], true);
     }
 
     /**
@@ -147,6 +224,8 @@ class Blue_API_Client {
         }
 
         if ($response['status'] === 201) {
+            // Clear cache so new asset appears
+            $this->clear_cache();
             return $response['data'];
         }
 
@@ -172,6 +251,8 @@ class Blue_API_Client {
         }
 
         if ($response['status'] === 200) {
+            // Clear cache so deleted asset disappears
+            $this->clear_cache();
             return true;
         }
 
