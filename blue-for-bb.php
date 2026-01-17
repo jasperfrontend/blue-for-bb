@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Blue for Beaver Builder
  * Description: Cloud library for Beaver Builder layouts
- * Version: 0.1.3
+ * Version: 0.1.4
  * Author: Jasper
  * Author URI: https://github.com/jasperfrontend
  * Plugin URI: https://github.com/jasperfrontend/blue-for-bb
