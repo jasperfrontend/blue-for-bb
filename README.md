@@ -33,6 +33,11 @@ Yes. The WordPress plugin source code is available on GitHub. The API component 
 The API is still evolving. Before open-sourcing it, I want to improve performance characteristics and complete a proper security review to ensure it’s safe to run in other environments.
 
 ### Can I use this right now?
-No.
+At this moment, no. Maybe in the future.
+
+### Disclaimer
+
+Blue is designed to work with Beaver Builder. Beaver Builder is a product of FastLine Media LLC.  
+Blue is not affiliated with, endorsed by, or sponsored by FastLine Media LLC.
 
 ~ Jasper
