@@ -212,6 +212,16 @@ class Blue_API_Client {
             'version' => sanitize_text_field($asset_data['version'] ?? '1.0.0')
         ];
 
+        // Include Themer-specific metadata if present
+        if (isset($asset_data['themer_settings']) && is_array($asset_data['themer_settings'])) {
+            $sanitized_data['themer_settings'] = $asset_data['themer_settings'];
+        }
+
+        // Include Themer version if present
+        if (isset($asset_data['themer_version'])) {
+            $sanitized_data['themer_version'] = sanitize_text_field($asset_data['themer_version']);
+        }
+
         // Validate layout data
         if (!Blue_Validator::validate_layout_data($sanitized_data['data'])) {
             return new WP_Error('invalid_layout', 'Invalid or oversized layout data');

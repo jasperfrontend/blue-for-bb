@@ -184,6 +184,13 @@ class Blue_Library {
     }
 
     /**
+     * Check if Beaver Themer is active
+     */
+    private function is_themer_active() {
+        return class_exists('FLThemeBuilderLoader') || defined('FL_THEME_BUILDER_VERSION');
+    }
+
+    /**
      * Render filter controls
      */
     private function render_filters($assets, $type_filter, $search) {
@@ -195,10 +202,20 @@ class Blue_Library {
 
                     <select name="type" id="filter-by-type">
                         <option value="">All Types</option>
-                        <option value="template" <?php selected($type_filter, 'template'); ?>>Template</option>
-                        <option value="row" <?php selected($type_filter, 'row'); ?>>Row</option>
-                        <option value="column" <?php selected($type_filter, 'column'); ?>>Column</option>
-                        <option value="module" <?php selected($type_filter, 'module'); ?>>Module</option>
+                        <optgroup label="Beaver Builder">
+                            <option value="template" <?php selected($type_filter, 'template'); ?>>Template</option>
+                            <option value="row" <?php selected($type_filter, 'row'); ?>>Row</option>
+                            <option value="column" <?php selected($type_filter, 'column'); ?>>Column</option>
+                            <option value="module" <?php selected($type_filter, 'module'); ?>>Module</option>
+                        </optgroup>
+                        <optgroup label="Beaver Themer">
+                            <option value="themer-header" <?php selected($type_filter, 'themer-header'); ?>>Themer Header</option>
+                            <option value="themer-footer" <?php selected($type_filter, 'themer-footer'); ?>>Themer Footer</option>
+                            <option value="themer-singular" <?php selected($type_filter, 'themer-singular'); ?>>Themer Singular</option>
+                            <option value="themer-archive" <?php selected($type_filter, 'themer-archive'); ?>>Themer Archive</option>
+                            <option value="themer-404" <?php selected($type_filter, 'themer-404'); ?>>Themer 404</option>
+                            <option value="themer-part" <?php selected($type_filter, 'themer-part'); ?>>Themer Part</option>
+                        </optgroup>
                     </select>
 
                     <input type="submit" class="button" value="Filter">
@@ -252,6 +269,68 @@ class Blue_Library {
     }
 
     /**
+     * Format asset type for display
+     */
+    private function format_asset_type($type) {
+        $type_labels = [
+            'template' => 'Template',
+            'row' => 'Row',
+            'column' => 'Column',
+            'module' => 'Module',
+            'themer-header' => 'Header',
+            'themer-footer' => 'Footer',
+            'themer-singular' => 'Singular',
+            'themer-archive' => 'Archive',
+            'themer-404' => '404',
+            'themer-part' => 'Part'
+        ];
+        return isset($type_labels[$type]) ? $type_labels[$type] : ucfirst($type);
+    }
+
+    /**
+     * Detect if an asset is a Themer layout based on available data
+     * This helps identify legacy assets that were exported before proper type detection
+     */
+    private function detect_themer_asset($asset) {
+        // Check if it has themer_settings
+        if (isset($asset['themer_settings']) && !empty($asset['themer_settings'])) {
+            return true;
+        }
+
+        // Check if requires bb-theme-builder
+        if (isset($asset['requires']['plugins']) && is_array($asset['requires']['plugins'])) {
+            if (in_array('bb-theme-builder', $asset['requires']['plugins'], true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Infer Themer type from asset data
+     */
+    private function infer_themer_type($asset) {
+        $type_map = [
+            'header' => 'themer-header',
+            'footer' => 'themer-footer',
+            'singular' => 'themer-singular',
+            'archive' => 'themer-archive',
+            '404' => 'themer-404',
+            'part' => 'themer-part'
+        ];
+
+        // Get from themer_settings.layout_type
+        if (isset($asset['themer_settings']['layout_type'])) {
+            $layout_type = $asset['themer_settings']['layout_type'];
+            return isset($type_map[$layout_type]) ? $type_map[$layout_type] : 'themer-singular';
+        }
+
+        // Default to singular if we can't determine
+        return 'themer-singular';
+    }
+
+    /**
      * Render single asset row
      */
     private function render_asset_row($asset) {
@@ -259,9 +338,20 @@ class Blue_Library {
         $title = isset($asset['title']) ? $asset['title'] : 'Untitled';
         $description = isset($asset['description']) ? $asset['description'] : '';
         $source_site = isset($asset['source_site']) ? $asset['source_site'] : '';
-        $type = isset($asset['type']) ? $asset['type'] : 'template';
+        $type = isset($asset['type']) && !empty($asset['type']) ? $asset['type'] : 'template';
         $tags = isset($asset['tags']) && is_array($asset['tags']) ? $asset['tags'] : [];
         $bb_version = isset($asset['bb_version']) ? $asset['bb_version'] : 'unknown';
+
+        // Check if this is a Themer asset (either by type or by detection)
+        $is_themer = Blue_Validator::is_themer_type($type);
+
+        // For legacy assets without proper type, detect if it's actually a Themer layout
+        if (!$is_themer && $this->detect_themer_asset($asset)) {
+            $is_themer = true;
+            $type = $this->infer_themer_type($asset);
+        }
+
+        $themer_available = $this->is_themer_active();
         ?>
         <tr>
             <td>
@@ -274,9 +364,16 @@ class Blue_Library {
                 <?php endif; ?>
             </td>
             <td>
-                <span class="blue-type-badge blue-type-<?php echo esc_attr($type); ?>">
-                    <?php echo esc_html(ucfirst($type)); ?>
-                </span>
+                <?php if ($is_themer): ?>
+                    <span class="blue-type-badge blue-type-themer" title="Beaver Themer Layout">
+                        <?php echo esc_html($this->format_asset_type($type)); ?>
+                    </span>
+                    <br><small style="color: #666;">Themer</small>
+                <?php else: ?>
+                    <span class="blue-type-badge blue-type-<?php echo esc_attr($type); ?>">
+                        <?php echo esc_html($this->format_asset_type($type)); ?>
+                    </span>
+                <?php endif; ?>
             </td>
             <td>
                 <?php if (!empty($tags)): ?>
@@ -291,12 +388,18 @@ class Blue_Library {
                 <code><?php echo esc_html($bb_version); ?></code>
             </td>
             <td>
-                <a href="<?php echo esc_url(wp_nonce_url(
-                    admin_url('admin.php?page=blue-library&action=import&asset_id=' . urlencode($asset_id)),
-                    'blue_import_' . $asset_id
-                )); ?>" class="button button-primary button-small">
-                    Import
-                </a>
+                <?php if ($is_themer && !$themer_available): ?>
+                    <span class="button button-small button-disabled" title="Beaver Themer is required to import this asset">
+                        Requires Themer
+                    </span>
+                <?php else: ?>
+                    <a href="<?php echo esc_url(wp_nonce_url(
+                        admin_url('admin.php?page=blue-library&action=import&asset_id=' . urlencode($asset_id)),
+                        'blue_import_' . $asset_id
+                    )); ?>" class="button button-primary button-small">
+                        Import
+                    </a>
+                <?php endif; ?>
                 <button
                     class="button button-small blue-delete-asset"
                     data-asset-id="<?php echo esc_attr($asset_id); ?>"

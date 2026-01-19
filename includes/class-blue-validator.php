@@ -12,10 +12,41 @@ if (!defined('ABSPATH')) {
 class Blue_Validator {
 
     /**
+     * Beaver Builder asset types
+     */
+    const BB_ASSET_TYPES = ['template', 'row', 'column', 'module'];
+
+    /**
+     * Beaver Themer layout types
+     */
+    const THEMER_LAYOUT_TYPES = ['themer-header', 'themer-footer', 'themer-singular', 'themer-archive', 'themer-404', 'themer-part'];
+
+    /**
+     * Get all allowed asset types
+     */
+    public static function get_allowed_types() {
+        return array_merge(self::BB_ASSET_TYPES, self::THEMER_LAYOUT_TYPES);
+    }
+
+    /**
+     * Check if type is a Beaver Themer type
+     */
+    public static function is_themer_type($type) {
+        return in_array($type, self::THEMER_LAYOUT_TYPES, true);
+    }
+
+    /**
+     * Check if type is a Beaver Builder type
+     */
+    public static function is_bb_type($type) {
+        return in_array($type, self::BB_ASSET_TYPES, true);
+    }
+
+    /**
      * Sanitize and validate asset type
      */
     public static function sanitize_asset_type($type) {
-        $allowed_types = ['template', 'row', 'column', 'module'];
+        $allowed_types = self::get_allowed_types();
         $sanitized = sanitize_text_field($type);
         return in_array($sanitized, $allowed_types, true) ? $sanitized : 'template';
     }

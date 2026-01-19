@@ -27,6 +27,44 @@ class Blue_Export {
     }
 
     /**
+     * Check if Beaver Themer is active
+     */
+    private function is_themer_active() {
+        return class_exists('FLThemeBuilderLoader') || defined('FL_THEME_BUILDER_VERSION');
+    }
+
+    /**
+     * Check if post is a Themer layout
+     */
+    private function is_themer_layout($post_id) {
+        $post = get_post($post_id);
+        return $post && $post->post_type === 'fl-theme-layout';
+    }
+
+    /**
+     * Get Themer layout type for a post
+     */
+    private function get_themer_layout_type($post_id) {
+        $layout_type = get_post_meta($post_id, '_fl_theme_layout_type', true);
+        return $layout_type ? $layout_type : 'singular';
+    }
+
+    /**
+     * Map Themer layout type to Blue asset type
+     */
+    private function map_themer_type_to_asset_type($layout_type) {
+        $type_map = [
+            'header' => 'themer-header',
+            'footer' => 'themer-footer',
+            'singular' => 'themer-singular',
+            'archive' => 'themer-archive',
+            '404' => 'themer-404',
+            'part' => 'themer-part'
+        ];
+        return isset($type_map[$layout_type]) ? $type_map[$layout_type] : 'themer-singular';
+    }
+
+    /**
      * Add meta box for exporting to Blue
      */
     public function add_export_meta_box() {
@@ -35,6 +73,21 @@ class Blue_Export {
             return;
         }
 
+        // Check if it's a Themer layout
+        if ($this->is_themer_layout($post_id)) {
+            // Themer layouts always have BB enabled implicitly
+            add_meta_box(
+                'blue_export_box',
+                'Blue for Beaver Builder',
+                [$this, 'render_export_meta_box'],
+                'fl-theme-layout',
+                'side',
+                'high'
+            );
+            return;
+        }
+
+        // Regular BB check for other post types
         $bb_enabled = get_post_meta($post_id, '_fl_builder_enabled', true);
         if (!$bb_enabled) {
             return;
@@ -62,6 +115,10 @@ class Blue_Export {
             <?php
             return;
         }
+
+        $is_themer = $this->is_themer_layout($post->ID);
+        $themer_layout_type = $is_themer ? $this->get_themer_layout_type($post->ID) : '';
+        $default_asset_type = $is_themer ? $this->map_themer_type_to_asset_type($themer_layout_type) : 'template';
 
         wp_nonce_field('blue_export', 'blue_export_nonce');
         ?>
@@ -105,10 +162,33 @@ class Blue_Export {
                 <p>
                     <label for="blue_asset_type">Asset Type</label>
                     <select id="blue_asset_type" class="widefat">
-                        <option value="template">Full Template</option>
-                        <option value="row">Row</option>
-                        <option value="column">Column</option>
-                        <option value="module">Module</option>
+                        <?php if ($is_themer): ?>
+                            <optgroup label="Beaver Themer">
+                                <option value="themer-header" <?php selected($default_asset_type, 'themer-header'); ?>>Themer Header</option>
+                                <option value="themer-footer" <?php selected($default_asset_type, 'themer-footer'); ?>>Themer Footer</option>
+                                <option value="themer-singular" <?php selected($default_asset_type, 'themer-singular'); ?>>Themer Singular</option>
+                                <option value="themer-archive" <?php selected($default_asset_type, 'themer-archive'); ?>>Themer Archive</option>
+                                <option value="themer-404" <?php selected($default_asset_type, 'themer-404'); ?>>Themer 404</option>
+                                <option value="themer-part" <?php selected($default_asset_type, 'themer-part'); ?>>Themer Part</option>
+                            </optgroup>
+                        <?php else: ?>
+                            <optgroup label="Beaver Builder">
+                                <option value="template">Full Template</option>
+                                <option value="row">Row</option>
+                                <option value="column">Column</option>
+                                <option value="module">Module</option>
+                            </optgroup>
+                            <?php if ($this->is_themer_active()): ?>
+                            <optgroup label="Beaver Themer">
+                                <option value="themer-header">Themer Header</option>
+                                <option value="themer-footer">Themer Footer</option>
+                                <option value="themer-singular">Themer Singular</option>
+                                <option value="themer-archive">Themer Archive</option>
+                                <option value="themer-404">Themer 404</option>
+                                <option value="themer-part">Themer Part</option>
+                            </optgroup>
+                            <?php endif; ?>
+                        <?php endif; ?>
                     </select>
                 </p>
 
@@ -137,8 +217,11 @@ class Blue_Export {
             return;
         }
 
+        // Check if this is a Themer layout or has BB enabled
+        $is_themer = $this->is_themer_layout($post_id);
         $bb_enabled = get_post_meta($post_id, '_fl_builder_enabled', true);
-        if (!$bb_enabled) {
+
+        if (!$bb_enabled && !$is_themer) {
             return;
         }
 
@@ -190,18 +273,53 @@ class Blue_Export {
         // Convert PHP objects to arrays for JSON encoding
         $layout_data_array = json_decode(wp_json_encode($layout_data), true);
 
+        // Determine asset type - auto-detect for Themer layouts based on post type
+        $is_themer_post = $this->is_themer_layout($post_id);
+        $user_selected_type = isset($_POST['type']) ? Blue_Validator::sanitize_asset_type($_POST['type']) : 'template';
+
+        // If this is a Themer layout post, ensure we use a Themer asset type
+        if ($is_themer_post) {
+            // If user selected a non-Themer type, auto-correct to the proper Themer type
+            if (!Blue_Validator::is_themer_type($user_selected_type)) {
+                $themer_layout_type = $this->get_themer_layout_type($post_id);
+                $asset_type = $this->map_themer_type_to_asset_type($themer_layout_type);
+            } else {
+                $asset_type = $user_selected_type;
+            }
+        } else {
+            // For non-Themer posts, don't allow Themer types
+            if (Blue_Validator::is_themer_type($user_selected_type)) {
+                $asset_type = 'template';
+            } else {
+                $asset_type = $user_selected_type;
+            }
+        }
+
         // Prepare asset data
         $asset_data = [
-            'type' => isset($_POST['type']) ? $_POST['type'] : 'template',
+            'type' => $asset_type,
             'title' => isset($_POST['title']) ? $_POST['title'] : '',
             'description' => isset($_POST['description']) ? $_POST['description'] : '',
             'tags' => isset($_POST['tags']) ? $_POST['tags'] : '',
             'bb_version' => defined('FL_BUILDER_VERSION') ? FL_BUILDER_VERSION : 'unknown',
             'data' => $layout_data_array,
-            'requires' => $this->extract_requirements($layout_data),
+            'requires' => $this->extract_requirements($layout_data, $asset_type),
             'source_site' => get_site_url(),
             'version' => '1.0.0'
         ];
+
+        // Add Themer-specific metadata if this is a Themer layout
+        if (Blue_Validator::is_themer_type($asset_type)) {
+            $themer_metadata = $this->get_themer_metadata($post_id);
+            if ($themer_metadata) {
+                $asset_data['themer_settings'] = $themer_metadata;
+            }
+
+            // Add Themer version if available
+            if (defined('FL_THEME_BUILDER_VERSION')) {
+                $asset_data['themer_version'] = FL_THEME_BUILDER_VERSION;
+            }
+        }
 
         // Create asset via API client
         $result = $this->api_client->create_asset($asset_data);
@@ -222,11 +340,16 @@ class Blue_Export {
     /**
      * Extract requirements from layout data
      */
-    private function extract_requirements($layout_data) {
+    private function extract_requirements($layout_data, $asset_type = 'template') {
         $requirements = [
             'plugins' => ['beaver-builder'],
             'modules' => []
         ];
+
+        // Add Themer as requirement if it's a Themer asset
+        if (Blue_Validator::is_themer_type($asset_type)) {
+            $requirements['plugins'][] = 'bb-theme-builder';
+        }
 
         if (!is_array($layout_data) && !is_object($layout_data)) {
             return $requirements;
@@ -243,5 +366,56 @@ class Blue_Export {
         }
 
         return $requirements;
+    }
+
+    /**
+     * Get Themer-specific metadata for export
+     */
+    private function get_themer_metadata($post_id) {
+        $metadata = [];
+
+        // Layout type (header, footer, singular, archive, etc.)
+        $layout_type = get_post_meta($post_id, '_fl_theme_layout_type', true);
+        if ($layout_type) {
+            $metadata['layout_type'] = $layout_type;
+        }
+
+        // Layout locations (where the layout applies)
+        $locations = get_post_meta($post_id, '_fl_theme_builder_locations', true);
+        if ($locations && is_array($locations)) {
+            $metadata['locations'] = $locations;
+        }
+
+        // Layout exclusions
+        $exclusions = get_post_meta($post_id, '_fl_theme_builder_exclusions', true);
+        if ($exclusions && is_array($exclusions)) {
+            $metadata['exclusions'] = $exclusions;
+        }
+
+        // Layout settings (sticky, shrink, overlay, etc.)
+        $layout_settings = get_post_meta($post_id, '_fl_theme_layout_settings', true);
+        if ($layout_settings && is_array($layout_settings)) {
+            $metadata['layout_settings'] = $layout_settings;
+        }
+
+        // User rules
+        $user_rules = get_post_meta($post_id, '_fl_theme_builder_user_rules', true);
+        if ($user_rules && is_array($user_rules)) {
+            $metadata['user_rules'] = $user_rules;
+        }
+
+        // Custom template rules
+        $custom_rules = get_post_meta($post_id, '_fl_theme_builder_custom_template_rules', true);
+        if ($custom_rules && is_array($custom_rules)) {
+            $metadata['custom_template_rules'] = $custom_rules;
+        }
+
+        // Conditional logic
+        $logic = get_post_meta($post_id, '_fl_theme_builder_logic', true);
+        if ($logic && is_array($logic)) {
+            $metadata['logic'] = $logic;
+        }
+
+        return !empty($metadata) ? $metadata : null;
     }
 }

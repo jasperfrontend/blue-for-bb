@@ -65,6 +65,25 @@
     color: #721c24;
 }
 
+/* Beaver Themer Types */
+.blue-type-themer,
+.blue-type-themer-header,
+.blue-type-themer-footer,
+.blue-type-themer-singular,
+.blue-type-themer-archive,
+.blue-type-themer-404,
+.blue-type-themer-part {
+    background: #e2d4f0;
+    color: #4a1d6b;
+}
+
+/* Disabled button for Themer required */
+.button.button-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* Tags */
 .blue-tag {
     display: inline-block;
