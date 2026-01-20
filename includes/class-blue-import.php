@@ -340,6 +340,15 @@ class Blue_Import {
         } else {
             update_post_meta($post_id, '_fl_theme_builder_logic', []);
         }
+
+        // Custom CSS/JS from Layout CSS/Javascript modal (Ctrl+Y)
+        if (isset($settings['data_settings']) && is_array($settings['data_settings'])) {
+            // Convert back to stdClass object as BB expects
+            $data_settings = new stdClass();
+            $data_settings->css = isset($settings['data_settings']['css']) ? $settings['data_settings']['css'] : '';
+            $data_settings->js = isset($settings['data_settings']['js']) ? $settings['data_settings']['js'] : '';
+            update_post_meta($post_id, '_fl_builder_data_settings', $data_settings);
+        }
     }
 
     /**
