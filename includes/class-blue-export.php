@@ -416,6 +416,13 @@ class Blue_Export {
             $metadata['logic'] = $logic;
         }
 
+        // Custom CSS/JS from Layout CSS/Javascript modal (Ctrl+Y)
+        $data_settings = get_post_meta($post_id, '_fl_builder_data_settings', true);
+        if ($data_settings) {
+            // Convert to array if it's an object for consistent JSON encoding
+            $metadata['data_settings'] = json_decode(wp_json_encode($data_settings), true);
+        }
+
         return !empty($metadata) ? $metadata : null;
     }
 }
