@@ -185,6 +185,11 @@ class Blue_Import {
         update_post_meta($post_id, '_blue_asset_id', sanitize_text_field($asset_id));
         update_post_meta($post_id, '_blue_imported_at', current_time('mysql'));
 
+        // Clear BB asset cache for this post so CSS/JS is regenerated
+        if (class_exists('FLBuilderModel')) {
+            FLBuilderModel::delete_asset_cache($post_id);
+        }
+
         // Redirect to BB's saved templates list
         $redirect_url = admin_url('edit.php?post_type=fl-builder-template&fl-builder-template-type=' . $bb_type);
 
@@ -259,6 +264,11 @@ class Blue_Import {
         // Add Blue metadata for reference
         update_post_meta($post_id, '_blue_asset_id', sanitize_text_field($asset_id));
         update_post_meta($post_id, '_blue_imported_at', current_time('mysql'));
+
+        // Clear BB asset cache for this post so CSS/JS is regenerated
+        if (class_exists('FLBuilderModel')) {
+            FLBuilderModel::delete_asset_cache($post_id);
+        }
 
         // Redirect to Themer layouts list
         $redirect_url = admin_url('edit.php?post_type=fl-theme-layout');
@@ -347,7 +357,9 @@ class Blue_Import {
             $data_settings = new stdClass();
             $data_settings->css = isset($settings['data_settings']['css']) ? $settings['data_settings']['css'] : '';
             $data_settings->js = isset($settings['data_settings']['js']) ? $settings['data_settings']['js'] : '';
+            // Save both published and draft versions so CSS appears in both contexts
             update_post_meta($post_id, '_fl_builder_data_settings', $data_settings);
+            update_post_meta($post_id, '_fl_builder_draft_settings', $data_settings);
         }
     }
 
