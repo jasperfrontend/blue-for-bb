@@ -1,3 +1,6 @@
+== v0.2.4.3 
+Switched hosting provider
+
 == v0.2.4.2
 I may have found a fix for custom styles not carrying over
 
